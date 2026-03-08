@@ -11,8 +11,9 @@ paths:
 
 ## E2E Testing
 
-Use **Playwright** as the E2E testing framework for critical user flows.
+**Prefer agent-browser** for E2E testing (semantic selectors, AI-optimized, auto-waiting).
+**Fallback to Playwright** when agent-browser is unavailable.
 
 ## Agent Support
 
-- **e2e-runner** - Playwright E2E testing specialist
+- **e2e-runner** - E2E testing specialist (agent-browser preferred, Playwright fallback)

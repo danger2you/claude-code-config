@@ -1,10 +1,49 @@
 ---
 name: e2e-testing
-description: Playwright E2E testing patterns, Page Object Model, configuration, CI/CD integration, artifact management, and flaky test strategies.
+description: E2E testing with agent-browser (preferred) and Playwright (fallback). Covers Page Object Model, configuration, CI/CD integration, artifact management, and flaky test strategies.
 origin: ECC
 ---
 
 # E2E Testing Patterns
+
+## Framework Priority
+
+**1. agent-browser (PREFERRED)**
+- Semantic selectors (natural language)
+- AI-optimized interactions
+- Auto-waiting and stability
+- Built on Playwright
+
+**2. Playwright (FALLBACK)**
+- Use when agent-browser unavailable
+- Direct browser automation
+- Comprehensive patterns below
+
+---
+
+## Agent Browser Usage
+
+```typescript
+// Natural language selectors - AI understands intent
+await page.click('the login button')
+await page.fill('email input field', 'user@example.com')
+await page.click('submit button in the login form')
+
+// AI-optimized waiting - automatically handles timing
+await page.waitFor('success message to appear')
+
+// Semantic assertions
+await expect(page).toContain('Welcome back')
+```
+
+**Key advantages:**
+- No brittle CSS selectors or test IDs
+- Auto-handles dynamic content and timing
+- More maintainable as UI changes
+
+---
+
+## Playwright Patterns
 
 Comprehensive Playwright patterns for building stable, fast, and maintainable E2E test suites.
 
