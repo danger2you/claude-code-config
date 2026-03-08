@@ -159,20 +159,3 @@
 确认一下，你真要这么干？[需要明确的"是"、"确认"、"继续"]
 ```
 
-
-## Quick Reference
-
-**Before coding:**
-1. Output Mermaid diagram
-2. Read existing code
-3. Consider 2+ approaches
-
-**During coding:**
-1. Follow KISS + DRY + YAGNI
-2. Apply SOLID principles
-3. No hardcoding
-
-**After coding:**
-1. Static check
-2. Automated tests
-3. Update README
