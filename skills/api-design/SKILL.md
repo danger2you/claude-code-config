@@ -113,86 +113,208 @@ Location: /api/v1/users/abc-123
 
 ## Response Format
 
-### Success Response
+### Unified Response Structure
+
+All API responses use a unified `code`, `msg`, `data` structure:
+
+```typescript
+// Base response interface
+interface BaseResponse<T = any> {
+  code: number;           // Business status code
+  msg: string;            // Message
+  data: T;                // Response data
+  timestamp?: string;     // Timestamp (ISO 8601)
+  traceId?: string;       // Request trace ID
+}
+
+// Error response interface
+interface ErrorResponse extends BaseResponse<null> {
+  error?: {
+    type: string;         // Error type
+    detail: string;       // Detailed description
+    field?: string;       // Error field
+    value?: any;          // Error value
+    fields?: Array<{      // Multi-field validation errors
+      field: string;
+      message: string;
+      value?: any;
+    }>;
+  };
+}
+
+// Paginated response interface
+interface PageResponse<T> extends BaseResponse<{
+  records: T[];           // Data list
+  pagination: {
+    page: number;         // Current page
+    size: number;         // Page size
+    total: number;        // Total records
+  };
+}> {}
+
+// List response interface (without pagination)
+interface ListResponse<T> extends BaseResponse<T[]> {
+  count?: number;         // List count
+}
+```
+
+### Single Resource Response
+
+**Success:**
 
 ```json
 {
+  "code": 200,
+  "msg": "数据获取成功",
   "data": {
     "id": "abc-123",
     "email": "alice@example.com",
     "name": "Alice",
-    "created_at": "2025-01-15T10:30:00Z"
-  }
+    "createdAt": "2025-01-15T10:30:00Z"
+  },
+  "timestamp": "2025-01-15T10:30:00Z"
 }
 ```
 
-### Collection Response (with Pagination)
+**Failure:**
 
 ```json
 {
+  "code": 404,
+  "msg": "资源不存在",
+  "data": null,
+  "error": {
+    "type": "RESOURCE_NOT_FOUND",
+    "detail": "ID为abc-123的用户不存在",
+    "field": "userId"
+  },
+  "timestamp": "2025-01-15T10:30:00Z",
+  "traceId": "req-abc-123"
+}
+```
+
+### List Response (Without Pagination)
+
+**Success:**
+
+```json
+{
+  "code": 200,
+  "msg": "资源列表获取成功",
   "data": [
     { "id": "abc-123", "name": "Alice" },
     { "id": "def-456", "name": "Bob" }
   ],
-  "meta": {
-    "total": 142,
-    "page": 1,
-    "per_page": 20,
-    "total_pages": 8
-  },
-  "links": {
-    "self": "/api/v1/users?page=1&per_page=20",
-    "next": "/api/v1/users?page=2&per_page=20",
-    "last": "/api/v1/users?page=8&per_page=20"
-  }
+  "count": 2,
+  "timestamp": "2025-01-15T10:30:00Z"
 }
 ```
 
-### Error Response
+**Failure:**
 
 ```json
 {
+  "code": 500,
+  "msg": "资源列表获取失败",
+  "data": [],
   "error": {
-    "code": "validation_error",
-    "message": "Request validation failed",
-    "details": [
-      {
-        "field": "email",
-        "message": "Must be a valid email address",
-        "code": "invalid_format"
-      },
-      {
-        "field": "age",
-        "message": "Must be between 0 and 150",
-        "code": "out_of_range"
-      }
-    ]
-  }
+    "type": "DATABASE_ERROR",
+    "detail": "数据库连接超时"
+  },
+  "timestamp": "2025-01-15T10:30:00Z",
+  "traceId": "req-xyz-456"
 }
 ```
 
-### Response Envelope Variants
+### List Response (With Pagination)
 
-```typescript
-// Option A: Envelope with data wrapper (recommended for public APIs)
-interface ApiResponse<T> {
-  data: T;
-  meta?: PaginationMeta;
-  links?: PaginationLinks;
+**Success:**
+
+```json
+{
+  "code": 200,
+  "msg": "资源列表获取成功",
+  "data": {
+    "records": [
+      { "id": "abc-123", "name": "Alice" },
+      { "id": "def-456", "name": "Bob" }
+    ],
+    "pagination": {
+      "page": 1,
+      "size": 20,
+      "total": 142
+    }
+  },
+  "timestamp": "2025-01-15T10:30:00Z"
 }
+```
 
-interface ApiError {
-  error: {
-    code: string;
-    message: string;
-    details?: FieldError[];
-  };
+**Failure:**
+
+```json
+{
+  "code": 400,
+  "msg": "分页参数错误",
+  "data": null,
+  "error": {
+    "type": "INVALID_PARAMETER",
+    "detail": "页码必须大于0",
+    "field": "page",
+    "value": -1
+  },
+  "timestamp": "2025-01-15T10:30:00Z"
 }
+```
 
-// Option B: Flat response (simpler, common for internal APIs)
-// Success: just return the resource directly
-// Error: return error object
-// Distinguish by HTTP status code
+### Validation Error Response
+
+```json
+{
+  "code": 422,
+  "msg": "数据验证失败",
+  "data": null,
+  "error": {
+    "type": "VALIDATION_ERROR",
+    "detail": "请求数据不符合要求",
+    "fields": [
+      {
+        "field": "email",
+        "message": "邮箱格式不正确",
+        "value": "invalid-email"
+      },
+      {
+        "field": "age",
+        "message": "年龄必须在18-100之间",
+        "value": 150
+      }
+    ]
+  },
+  "timestamp": "2025-01-15T10:30:00Z"
+}
+```
+
+### Business Status Codes
+
+```javascript
+// Success codes
+200: "操作成功"
+201: "创建成功"
+204: "删除成功"
+
+// Client errors 4xx
+400: "请求参数错误"
+401: "未授权，请先登录"
+403: "无权限访问"
+404: "资源不存在"
+409: "资源冲突"
+422: "数据验证失败"
+429: "请求过于频繁"
+
+// Server errors 5xx
+500: "服务器内部错误"
+502: "网关错误"
+503: "服务暂时不可用"
+504: "网关超时"
 ```
 
 ## Pagination
@@ -200,12 +322,33 @@ interface ApiError {
 ### Offset-Based (Simple)
 
 ```
-GET /api/v1/users?page=2&per_page=20
+GET /api/v1/users?page=2&size=20
 
 # Implementation
 SELECT * FROM users
 ORDER BY created_at DESC
 LIMIT 20 OFFSET 20;
+```
+
+**Response Format:**
+
+```json
+{
+  "code": 200,
+  "msg": "用户列表获取成功",
+  "data": {
+    "records": [
+      { "id": "abc-123", "name": "Alice" },
+      { "id": "def-456", "name": "Bob" }
+    ],
+    "pagination": {
+      "page": 2,
+      "size": 20,
+      "total": 142
+    }
+  },
+  "timestamp": "2025-01-15T10:30:00Z"
+}
 ```
 
 **Pros:** Easy to implement, supports "jump to page N"
@@ -223,13 +366,21 @@ ORDER BY id ASC
 LIMIT 21;  -- fetch one extra to determine has_next
 ```
 
+**Response Format:**
+
 ```json
 {
-  "data": [...],
-  "meta": {
-    "has_next": true,
-    "next_cursor": "eyJpZCI6MTQzfQ"
-  }
+  "code": 200,
+  "msg": "用户列表获取成功",
+  "data": {
+    "records": [...],
+    "pagination": {
+      "cursor": "eyJpZCI6MTQzfQ",
+      "hasNext": true,
+      "limit": 20
+    }
+  },
+  "timestamp": "2025-01-15T10:30:00Z"
 }
 ```
 
@@ -312,15 +463,15 @@ X-API-Key: sk_live_abc123
 // Resource-level: check ownership
 app.get("/api/v1/orders/:id", async (req, res) => {
   const order = await Order.findById(req.params.id);
-  if (!order) return res.status(404).json({ error: { code: "not_found" } });
-  if (order.userId !== req.user.id) return res.status(403).json({ error: { code: "forbidden" } });
-  return res.json({ data: order });
+  if (!order) return res.status(404).json({ code: 404, msg: "资源不存在", data: null });
+  if (order.userId !== req.user.id) return res.status(403).json({ code: 403, msg: "无权限访问", data: null });
+  return res.json({ code: 200, msg: "数据获取成功", data: order });
 });
 
 // Role-based: check permissions
 app.delete("/api/v1/users/:id", requireRole("admin"), async (req, res) => {
   await User.delete(req.params.id);
-  return res.status(204).send();
+  return res.status(204).json({ code: 204, msg: "删除成功", data: null });
 });
 ```
 
@@ -333,16 +484,6 @@ HTTP/1.1 200 OK
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1640000000
-
-# When exceeded
-HTTP/1.1 429 Too Many Requests
-Retry-After: 60
-{
-  "error": {
-    "code": "rate_limit_exceeded",
-    "message": "Rate limit exceeded. Try again in 60 seconds."
-  }
-}
 ```
 
 ### Rate Limit Tiers
@@ -398,110 +539,81 @@ Accept: application/vnd.myapp.v2+json
 
 ## Implementation Patterns
 
-### TypeScript (Next.js API Route)
+### TypeScript Implementation Example
 
 ```typescript
-import { z } from "zod";
-import { NextRequest, NextResponse } from "next/server";
-
-const createUserSchema = z.object({
-  email: z.string().email(),
-  name: z.string().min(1).max(100),
-});
-
+// POST - 创建资源
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const parsed = createUserSchema.safeParse(body);
-
+  const parsed = schema.safeParse(await req.json());
   if (!parsed.success) {
     return NextResponse.json({
-      error: {
-        code: "validation_error",
-        message: "Request validation failed",
-        details: parsed.error.issues.map(i => ({
-          field: i.path.join("."),
-          message: i.message,
-          code: i.code,
-        })),
-      },
+      code: 422, msg: "数据验证失败", data: null,
+      error: { type: "VALIDATION_ERROR", fields: [...] }
     }, { status: 422 });
   }
 
   const user = await createUser(parsed.data);
-
   return NextResponse.json(
-    { data: user },
-    {
-      status: 201,
-      headers: { Location: `/api/v1/users/${user.id}` },
-    },
+    { code: 201, msg: "创建成功", data: user },
+    { status: 201, headers: { Location: `/api/v1/users/${user.id}` } }
   );
+}
+
+// GET - 单个资源
+export async function GET(req: NextRequest, { params }) {
+  const user = await findUserById(params.id);
+  if (!user) {
+    return NextResponse.json(
+      { code: 404, msg: "资源不存在", data: null },
+      { status: 404 }
+    );
+  }
+  return NextResponse.json({ code: 200, msg: "数据获取成功", data: user });
+}
+
+// GET - 列表（带分页）
+export async function GET(req: NextRequest) {
+  const page = parseInt(req.nextUrl.searchParams.get("page") || "1");
+  const size = parseInt(req.nextUrl.searchParams.get("size") || "20");
+  const { records, total } = await findUsers({ page, size });
+
+  return NextResponse.json({
+    code: 200,
+    msg: "资源列表获取成功",
+    data: { records, pagination: { page, size, total } }
+  });
 }
 ```
 
-### Python (Django REST Framework)
+## Special Case Response Examples
 
-```python
-from rest_framework import serializers, viewsets, status
-from rest_framework.response import Response
+### Batch Operation Response
 
-class CreateUserSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    name = serializers.CharField(max_length=100)
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ["id", "email", "name", "created_at"]
-
-class UserViewSet(viewsets.ModelViewSet):
-    serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_serializer_class(self):
-        if self.action == "create":
-            return CreateUserSerializer
-        return UserSerializer
-
-    def create(self, request):
-        serializer = CreateUserSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = UserService.create(**serializer.validated_data)
-        return Response(
-            {"data": UserSerializer(user).data},
-            status=status.HTTP_201_CREATED,
-            headers={"Location": f"/api/v1/users/{user.id}"},
-        )
+```json
+{
+  "code": 200,
+  "msg": "批量操作完成",
+  "data": {
+    "success": [{ "id": 1212, "status": "已删除" }],
+    "failed": [{ "id": 1213, "reason": "资源不存在" }],
+    "summary": { "total": 2, "successCount": 1, "failedCount": 1 }
+  }
+}
 ```
 
-### Go (net/http)
+### Rate Limit Response
 
-```go
-func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-    var req CreateUserRequest
-    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-        writeError(w, http.StatusBadRequest, "invalid_json", "Invalid request body")
-        return
-    }
-
-    if err := req.Validate(); err != nil {
-        writeError(w, http.StatusUnprocessableEntity, "validation_error", err.Error())
-        return
-    }
-
-    user, err := h.service.Create(r.Context(), req)
-    if err != nil {
-        switch {
-        case errors.Is(err, domain.ErrEmailTaken):
-            writeError(w, http.StatusConflict, "email_taken", "Email already registered")
-        default:
-            writeError(w, http.StatusInternalServerError, "internal_error", "Internal error")
-        }
-        return
-    }
-
-    w.Header().Set("Location", fmt.Sprintf("/api/v1/users/%s", user.ID))
-    writeJSON(w, http.StatusCreated, map[string]any{"data": user})
+```json
+{
+  "code": 429,
+  "msg": "请求过于频繁，请稍后再试",
+  "data": null,
+  "error": {
+    "type": "RATE_LIMIT_EXCEEDED",
+    "retryAfter": 60,
+    "limit": 100,
+    "remaining": 0
+  }
 }
 ```
 
