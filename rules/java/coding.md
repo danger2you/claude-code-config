@@ -80,6 +80,57 @@ try {
 - **Configuration**: Use `@ConfigurationProperties` over `@Value` for grouped config
 
 
+## Concurrency
+
+- **Thread safety**: Use `synchronized`, `volatile`, `AtomicXxx`, or `ConcurrentHashMap`
+- **Thread pools**: Use `ExecutorService`, never `new Thread()` directly
+  ```java
+  // ✅ Good
+  ExecutorService executor = Executors.newFixedThreadPool(10);
+  executor.submit(() -> processTask());
+  executor.shutdown();
+
+  // ❌ Bad
+  new Thread(() -> processTask()).start();
+  ```
+- **Locks**: Prefer `ReentrantLock` over `synchronized` for complex scenarios
+- **Immutability**: Use `final` fields, `Collections.unmodifiableXxx()`, or immutable collections
+
+
+## Stream API
+
+- **Prefer streams**: For filtering, mapping, reducing collections
+- **Avoid side effects**: Don't modify external state in stream operations
+- **Parallel streams**: Only for CPU-intensive tasks with large datasets (>10k elements)
+  ```java
+  // ✅ Good
+  List<String> names = users.stream()
+      .filter(User::isActive)
+      .map(User::getName)
+      .collect(Collectors.toList());
+
+  // ❌ Bad - side effect
+  users.stream().forEach(u -> externalList.add(u.getName()));
+  ```
+
+
+## JPA/Hibernate
+
+- **N+1 queries**: Use `@EntityGraph` or `JOIN FETCH` to avoid
+  ```java
+  // ✅ Good
+  @Query("SELECT u FROM User u JOIN FETCH u.orders WHERE u.id = :id")
+  User findByIdWithOrders(@Param("id") Long id);
+
+  // ❌ Bad - triggers N+1
+  User user = userRepository.findById(id);
+  user.getOrders().size(); // Lazy load triggers N queries
+  ```
+- **Batch operations**: Use `@BatchSize` or native batch inserts for bulk operations
+- **Lazy loading**: Be aware of `LazyInitializationException` outside transaction scope
+- **Projections**: Use DTO projections for read-only queries instead of full entities
+
+
 ## Common Anti-Patterns
 
 - 🔴 `Optional.get()` without check → Use `orElseThrow()`/`orElse()`/`map()`
