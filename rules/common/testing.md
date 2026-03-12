@@ -1,3 +1,14 @@
+---
+paths:
+  - "**/*.test.*"
+  - "**/*.spec.*"
+  - "**/test/**"
+  - "**/tests/**"
+  - "**/__tests__/**"
+  - "**/jest.config.*"
+  - "**/vitest.config.*"
+  - "**/playwright.config.*"
+---
 # Testing Requirements
 
 ## Minimum Test Coverage: 80%
