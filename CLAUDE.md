@@ -42,18 +42,12 @@
 
 🔴 **Mandatory before any conclusion:**
 
-1. **Mermaid diagram first** - flowchart/sequence/architecture diagram
-2. **Code reading checklist:**
-   - Core implementation (functions/classes/variables)
-   - Call chain (upstream/downstream/intermediate)
-   - Config files (app/build/env)
-   - Test code (unit/integration/mocks)
-3. **Dependency JAR:** Decompile with `jd-cli`/`cfr`/`fernflower`, record full evidence chain
-4. **No speculation:** Forbidden - "possibly", "maybe", "should be", "seems like"
-5. **Evidence chain:** Every conclusion needs `file:line` + code snippet + JAR version (if applicable)
-6. **Hypothesis labeling:** If incomplete, label as hypothesis + list missing evidence + verification steps
+1. **Mermaid diagram first** - Visualize before implementing
+2. **Complete code reading** - Core implementation, call chain, config, tests
+3. **Evidence chain** - Every conclusion needs `file:line` + code snippet
+4. **No speculation** - Forbidden: "possibly", "maybe", "should be", "seems like"
 
-📖 **Detailed guide:** See `guides/pre-analysis.md` for examples and use cases
+📖 **Detailed guide:** See `guides/pre-analysis.md` for checklist, JAR decompilation, hypothesis labeling
 
 ### Modification Requirements
 
