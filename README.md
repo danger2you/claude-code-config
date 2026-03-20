@@ -9,6 +9,7 @@
 ├── CLAUDE.md    # 全局编码规范和工作流指南
 ├── agents/      # 专业化 AI 代理
 ├── commands/    # 自定义命令
+├── guides/      # 详细指南文档
 ├── rules/       # 测试和其他规则
 └── skills/      # 技能模块
 ```
@@ -55,6 +56,7 @@
 
 | 技能 | 描述 |
 |------|------|
+| **agent-browser** | 浏览器自动化 CLI 工具，支持网页导航、截图、内容抓取、表单填写等 |
 | **api-design** | REST API 设计模式，包括资源命名、状态码、分页、过滤等 |
 | **article-writing** | 撰写文章、指南、博客、教程等长篇内容 |
 | **coding-standards** | TypeScript、JavaScript、React 和 Node.js 的编码标准 |
